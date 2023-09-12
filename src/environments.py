@@ -88,8 +88,14 @@ class WirelessCommunicationsEnv:
         self.queue[self.t] = self.queue[self.t - 1] - packets
         self.queue[self.t] = max(0, self.queue[self.t])
 
-        r = self.batt_weight * np.log(1 + self.batt[self.t]) - self.queue_weight * self.queue[self.t]
-        done = True if self.t == self.T else False
+        # r = self.batt_weight * np.log(1 + self.batt[self.t]) - self.queue_weight * self.queue[self.t]
+        # done = True if self.t == self.T else False
+
+        r = 0
+        done = False
+        if self.t == self.T:
+            r += self.batt_weight * np.log(1 + self.batt[self.T]) - self.queue_weight * self.queue[self.T]
+            done = True
         
         return self._get_obs(self.t), r, done, None, None
 

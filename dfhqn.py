@@ -9,38 +9,43 @@ from src.utils import Discretizer, ReplayBuffer
 torch.set_num_threads(1)
 
 
-class ValueNetwork(torch.nn.Module):
+class FHValueNetwork(torch.nn.Module):
     def __init__(self,
             num_inputs,
             num_hiddens,
-            num_outputs
+            num_outputs,
+            H,
         ) -> None:
-        super(ValueNetwork, self).__init__()
+        super(FHValueNetwork, self).__init__()
         self.layers = torch.nn.ModuleList()
         for h in num_hiddens:
             self.layers.append(torch.nn.Linear(num_inputs, h))
             self.layers.append(torch.nn.Tanh())
             num_inputs = h
-        action_layer = torch.nn.Linear(num_inputs, num_outputs)
-        action_layer.weight.data.mul_(0.1)
-        action_layer.bias.data.mul_(0.0)
-        self.layers.append(action_layer)
+        
+        time_layers = []
+        for h in range(H):
+            action_layer = torch.nn.Linear(num_inputs, num_outputs)
+            action_layer.weight.data.mul_(0.1)
+            action_layer.bias.data.mul_(0.0)
+            time_layers.append(action_layer)
+        self.time_layers = torch.nn.ParameterList(time_layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, h) -> torch.Tensor:
         for layer in self.layers:
             x = layer(x)
-        return x
+        return self.time_layers[h](x)
 
-def greedy_episode_nn(env, Q, H, bucket_a, discretizer):
+def greedy_episode_fhn(env, Q, H, bucket_a, discretizer):
     with torch.no_grad():
         G = 0
         (g, occ, q, b), _ = env.reset()
         s = torch.tensor(np.concatenate([g, occ, [q, b]]))
         for h in range(H):
-            a_idx_flat = Q(s).argmax().detach().item()
+            a_idx_flat = Q(s, h).argmax().detach().item()
             a_idx = np.unravel_index(a_idx_flat, bucket_a)
             a = discretizer.get_action_from_index(a_idx)
-            
+
             (g, occ, q, b), r, d, _, _ = env.step(a)
             s = torch.tensor(np.concatenate([g, occ, [q, b]]))
             
@@ -50,13 +55,13 @@ def greedy_episode_nn(env, Q, H, bucket_a, discretizer):
                 break
         return G
 
-def select_action(Q, s, epsilon, discretizer, bucket_a):
+def select_action(Q, h, s, epsilon, discretizer, bucket_a):
     if np.random.rand() < epsilon:
         a_idx = tuple(np.random.randint(bucket_a).tolist())
         a_idx_flat = np.ravel_multi_index(a_idx, bucket_a)
         a = discretizer.get_action_from_index(a_idx)
         return a, a_idx_flat
-    a_idx_flat = Q(s).argmax().detach().item()
+    a_idx_flat = Q(s, h).argmax().detach().item()
     a_idx = np.unravel_index(a_idx_flat, bucket_a)
     a = discretizer.get_action_from_index(a_idx)
     return a, a_idx_flat
@@ -76,21 +81,23 @@ def run_experiment(n):
     buffer = ReplayBuffer(1_000)
 
     Gs = []
-    Q = ValueNetwork(6, [32], 100).double()
+    Q = FHValueNetwork(6, [64], 100, H).double()
     opt = torch.optim.Adam(Q.parameters(), lr=lr)
     for episode in range(E):
         (g, occ, q, b), _ = env.reset()
         s = torch.tensor(np.concatenate([g, occ, [q, b]]))
         for h in range(H):
-            a, a_idx = select_action(Q, s, eps, discretizer, bucket_a)
+            a, a_idx = select_action(Q, h, s, eps, discretizer, bucket_a)
             (g, occ, q, b), r, d, _, _ = env.step(a)
             sp = torch.tensor(np.concatenate([g, occ, [q, b]]))
 
-            buffer.append(s, a_idx, sp, r, d)   
+            buffer.append(h, s, a_idx, sp, r, d)
 
-            st, at, spt, rt, dt = buffer.sample(1)
-            q_target = rt + gamma * Q(spt).max(dim=1).values.detach()
-            q_hat = Q(st)[torch.arange(at.shape[0]), at]
+            ht, st, at, spt, rt, dt = buffer.sample(1)
+            q_target = rt[0]
+            if not dt[0]:
+                q_target += Q(spt[0], ht[0] + 1).max().detach()
+            q_hat = Q(st[0], ht[0])[at[0]]
 
             opt.zero_grad()
             loss = torch.nn.MSELoss()
@@ -102,10 +109,10 @@ def run_experiment(n):
 
             s = sp
             eps = max(eps*eps_decay, eps_min)
-        G = greedy_episode_nn(env, Q, H, bucket_a, discretizer)
+        G = greedy_episode_fhn(env, Q, H, bucket_a, discretizer)
         Gs.append(G)
         # if episode % 5_000 == 0:
-            # print(episode, G, flush=True)
+            # print(episode, G)
     print(n, np.mean(Gs[-1000:]), flush=True)
     return Gs
 
@@ -146,4 +153,4 @@ n_exp = 100
 if __name__ == "__main__":
     with Pool() as pool:
         results = pool.map(run_experiment, range(n_exp))
-    np.save('dqn3.npy', results)
+    np.save('dfhqn4.npy', results)

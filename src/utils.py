@@ -49,6 +49,7 @@ class Discretizer:
 
 @dataclass
 class Transition:
+    timestep: int
     state: torch.Tensor
     action: np.array
     next_state: torch.Tensor
@@ -77,9 +78,10 @@ class ReplayBuffer(object):
     def sample(self, batch_size):
         sample = [self._storage[random.randint(0, len(self._storage) - 1)] for _ in range(batch_size)]
         return (
+            [s.timestep for s in sample],
             torch.stack([s.state for s in sample]),
             np.stack([s.action for s in sample]),
             torch.stack([s.next_state for s in sample]),
             torch.tensor(np.stack([s.reward for s in sample])).double(),
-            1*torch.tensor(np.stack([s.done for s in sample]))
+            np.stack([s.done for s in sample])
         )
