@@ -59,7 +59,6 @@ class GridWorldEnv:
         return self.env.step(a)
 
 
-
 class WirelessCommunicationsEnv:
     """
     SETUP DESCRIPTION

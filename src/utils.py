@@ -1,3 +1,4 @@
+from typing import List
 import random
 from dataclasses import dataclass
 import numpy as np
@@ -7,13 +8,13 @@ import torch
 class Discretizer:
     def __init__(
         self,
-        min_points_states,
-        max_points_states,
-        bucket_states,
-        min_points_actions,
-        max_points_actions,
-        bucket_actions,
-        ):
+        min_points_states: List[float],
+        max_points_states: List[float],
+        bucket_states: List[int],
+        min_points_actions: List[float],
+        max_points_actions: List[float],
+        bucket_actions: List[int],
+        ) -> None:
         self.min_points_states = np.array(min_points_states)
         self.max_points_states = np.array(max_points_states)
         self.bucket_states = np.array(bucket_states)
@@ -30,19 +31,19 @@ class Discretizer:
         self.n_actions = np.round(self.bucket_actions).astype(int)
         self.dimensions = np.concatenate((self.n_states, self.n_actions))
 
-    def get_state_index(self, state):
+    def get_state_index(self, state: np.ndarray) -> List[int]:
         state = np.clip(state, a_min=self.min_points_states, a_max=self.max_points_states)
         scaling = (state - self.min_points_states) / self.range_states
         state_idx = np.round(scaling * (self.bucket_states - 1)).astype(int)
-        return tuple(state_idx.tolist())
+        return state_idx.tolist()
 
-    def get_action_index(self, action):
+    def get_action_index(self, action: np.ndarray) -> List[int]:
         action = np.clip(action, a_min=self.min_points_actions, a_max=self.max_points_actions)
         scaling = (action - self.min_points_actions) / self.range_actions
         action_idx = np.round(scaling * (self.bucket_actions - 1)).astype(int)
-        return tuple(action_idx.tolist())
+        return action_idx.tolist()
 
-    def get_action_from_index(self, action_idx):
+    def get_action_from_index(self, action_idx: np.ndarray) -> np.ndarray:
         return self.min_points_actions + action_idx * self.spacing_actions
 
 
@@ -58,7 +59,7 @@ class Transition:
         
 # From OpenAI baselines
 class ReplayBuffer(object):
-    def __init__(self, size):
+    def __init__(self, size: int) -> None:
         self._storage = []
         self._maxsize = size
         self._next_idx = 0

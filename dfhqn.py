@@ -9,32 +9,7 @@ from src.utils import Discretizer, ReplayBuffer
 torch.set_num_threads(1)
 
 
-class FHValueNetwork(torch.nn.Module):
-    def __init__(self,
-            num_inputs,
-            num_hiddens,
-            num_outputs,
-            H,
-        ) -> None:
-        super(FHValueNetwork, self).__init__()
-        self.layers = torch.nn.ModuleList()
-        for h in num_hiddens:
-            self.layers.append(torch.nn.Linear(num_inputs, h))
-            self.layers.append(torch.nn.Tanh())
-            num_inputs = h
-        
-        time_layers = []
-        for h in range(H):
-            action_layer = torch.nn.Linear(num_inputs, num_outputs)
-            action_layer.weight.data.mul_(0.1)
-            action_layer.bias.data.mul_(0.0)
-            time_layers.append(action_layer)
-        self.time_layers = torch.nn.ParameterList(time_layers)
 
-    def forward(self, x: torch.Tensor, h) -> torch.Tensor:
-        for layer in self.layers:
-            x = layer(x)
-        return self.time_layers[h](x)
 
 def greedy_episode_fhn(env, Q, H, bucket_a, discretizer):
     with torch.no_grad():

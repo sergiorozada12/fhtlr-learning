@@ -9,33 +9,7 @@ from src.utils import Discretizer, ReplayBuffer
 torch.set_num_threads(1)
 
 
-class PARAFAC(torch.nn.Module):
-    def __init__(self, dims, k, scale=1.0):
-        super().__init__()
 
-        self.k = k
-        self.n_factors = len(dims)
-
-        factors = []
-        for dim in dims:
-            factor = scale*torch.randn(dim, k, dtype=torch.double, requires_grad=True)
-            factors.append(torch.nn.Parameter(factor))
-        self.factors = torch.nn.ParameterList(factors)
-
-    def forward(self, indices):
-        prod = torch.ones(self.k, dtype=torch.double)
-        for i in range(len(indices)):
-            idx = indices[i]
-            factor = self.factors[i]
-            prod *= factor[idx, :]
-        if len(indices) < len(self.factors):
-            result = []
-            for c1, c2 in zip(self.factors[-2].t(), self.factors[-1].t()):
-                kr = torch.kron(c1, c2)
-                result.append(kr)
-            factors_action = torch.stack(result, dim=1)
-            return torch.matmul(prod, factors_action.T)        
-        return torch.sum(prod, dim=-1)
 
 def greedy_episode_tlr(env, Q, H, bucket_a, discretizer):
     with torch.no_grad():

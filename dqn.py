@@ -9,27 +9,7 @@ from src.utils import Discretizer, ReplayBuffer
 torch.set_num_threads(1)
 
 
-class ValueNetwork(torch.nn.Module):
-    def __init__(self,
-            num_inputs,
-            num_hiddens,
-            num_outputs
-        ) -> None:
-        super(ValueNetwork, self).__init__()
-        self.layers = torch.nn.ModuleList()
-        for h in num_hiddens:
-            self.layers.append(torch.nn.Linear(num_inputs, h))
-            self.layers.append(torch.nn.Tanh())
-            num_inputs = h
-        action_layer = torch.nn.Linear(num_inputs, num_outputs)
-        action_layer.weight.data.mul_(0.1)
-        action_layer.bias.data.mul_(0.0)
-        self.layers.append(action_layer)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        for layer in self.layers:
-            x = layer(x)
-        return x
 
 def greedy_episode_nn(env, Q, H, bucket_a, discretizer):
     with torch.no_grad():
