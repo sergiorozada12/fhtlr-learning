@@ -6,6 +6,33 @@ from gym import Env
 
 torch.set_num_threads(1)
 
+def run_train_episode(env, agent, eps, eps_decay, H):
+    s, _ = env.reset()
+    for h in range(H):
+        a = agent.select_action(s, h, eps)
+        sp, r, d, _, _ = env.step(a)
+
+        agent.buffer.append(h, s, a, sp, r, d)
+        agent.update()
+
+        if d:
+            break
+
+        s = sp
+        eps *= eps_decay
+    return eps
+
+def run_test_episode(env, agent, H):
+    G = 0
+    s, _ = env.reset()
+    for h in range(H):
+        a = agent.select_greedy_action(s, h)
+        s, r, d, _, _ = env.step(a)
+        G += r
+
+        if d:
+            break
+    return G
 
 def run_experiment(
         n: int,
@@ -22,19 +49,7 @@ def run_experiment(
 
     Gs = []
     for _ in range(E):
-        s, _ = env.reset()
-        for h in range(H):
-            a = agent.select_action(h, s, eps)
-            sp, r, d, _, _ = env.step(a)
-
-            agent.buffer.append(h, s, a, sp, r, d)
-            agent.update()
-
-            if d:
-                break
-
-            s = sp
-            eps *= eps_decay
-        G = agent.greedy_episode(env, H)
+        eps = run_train_episode(env, agent, eps, eps_decay, H)
+        G = run_test_episode(env, agent, H)
         Gs.append(G)
     return Gs

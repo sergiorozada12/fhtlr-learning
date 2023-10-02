@@ -1,5 +1,6 @@
 import numpy as np
 
+from torch import tensor, double
 from torch.nn import MSELoss
 from torch.optim import Adam
 
@@ -20,28 +21,32 @@ class Dqn:
         self.buffer = ReplayBuffer(buffer_size)
         self.discretizer = discretizer
         self.Q = ValueNetwork(
-            len(discretizer.bucket_s),
+            len(discretizer.bucket_states),
             [32],
-            len(discretizer.bucket_a)
+            np.prod(discretizer.bucket_actions)
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
 
-    def select_action(self, s: np.ndarray, epsilon: float) -> np.ndarray:
-        if np.random.rand() < epsilon:
-            a_idx = tuple(np.random.randint(self.discretizer.bucket_a).tolist())
-            a = self.discretizer.get_action_from_index(a_idx)
-            return a
+    def select_random_action(self) -> np.ndarray:
+        a_idx = tuple(np.random.randint(self.discretizer.bucket_actions).tolist())
+        return self.discretizer.get_action_from_index(a_idx)
+
+    def select_greedy_action(self, s: np.ndarray, h: int) -> np.ndarray:
         a_idx_flat = self.Q(s).argmax().detach().item()
-        a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_a)
-        a = self.discretizer.get_action_from_index(a_idx)
-        return a
+        a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_actions)
+        return self.discretizer.get_action_from_index(a_idx)
+
+    def select_action(self, s: np.ndarray, h: int, epsilon: float) -> np.ndarray:
+        if np.random.rand() < epsilon:
+            return self.select_random_action()
+        return self.select_greedy_action(s, h)
 
     def update(self) -> None:
-        _, s, a, sp, r, _ = self.buffer.sample(1)
+        _, s, a, sp, r, _ = self.buffer.sample()
 
-        a_idx = self.discretizer.get_action_index(a)
+        a_multi_idx = self.discretizer.get_action_index(a)
+        a_idx = np.ravel_multi_index(a_multi_idx, self.discretizer.bucket_actions)
 
-        _, s, a, sp, r, _ = self.buffer.sample(1)
         q_target = r + self.gamma * self.Q(sp).max().detach()
         q_hat = self.Q(s)[a_idx]
 
@@ -65,11 +70,21 @@ class DFHqn:
         self.buffer = ReplayBuffer(buffer_size)
         self.discretizer = discretizer
         self.Q = FHValueNetwork(
-            len(discretizer.bucket_s),
+            len(discretizer.bucket_states),
             [32],
-            len(discretizer.bucket_a)
+            np.prod(discretizer.bucket_actions),
+            H
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
+
+    def select_random_action(self) -> np.ndarray:
+        a_idx = tuple(np.random.randint(self.discretizer.bucket_actions).tolist())
+        return self.discretizer.get_action_from_index(a_idx)
+
+    def select_greedy_action(self, s: np.ndarray, h: int) -> np.ndarray:
+        a_idx_flat = self.Q(s, h).argmax().detach().item()
+        a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_actions)
+        return self.discretizer.get_action_from_index(a_idx)
 
     def select_action(
             self,
@@ -78,20 +93,16 @@ class DFHqn:
             epsilon: float
         ) -> np.ndarray:
         if np.random.rand() < epsilon:
-            a_idx = tuple(np.random.randint(self.discretizer.bucket_a).tolist())
-            a = self.discretizer.get_action_from_index(a_idx)
-            return a
-        a_idx_flat = self.Q(s, h).argmax().detach().item()
-        a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_a)
-        a = self.discretizer.get_action_from_index(a_idx)
-        return a
+            return self.select_random_action()
+        return self.select_greedy_action(s, h)
 
     def update(self) -> None:
-        h, s, a, sp, r, d = self.buffer.sample(1)
+        h, s, a, sp, r, d = self.buffer.sample()
 
-        a_idx = self.discretizer.get_action_index(a)
+        a_multi_idx = self.discretizer.get_action_index(a)
+        a_idx = np.ravel_multi_index(a_multi_idx, self.discretizer.bucket_actions)
 
-        q_target = r
+        q_target = tensor(r, dtype=double)
         if not d:
             q_target += self.Q(sp, h + 1).max().detach()
         q_hat = self.Q(s, h)[a_idx]

@@ -1,5 +1,6 @@
 import numpy as np
 
+from torch import tensor, double
 from torch import no_grad
 from torch.nn import MSELoss
 from torch.optim import Adam
@@ -23,11 +24,22 @@ class FHTlr:
         self.buffer = ReplayBuffer(1)
         self.discretizer = discretizer
         self.Q = PARAFAC(
-            [H] + discretizer.bucket_s + discretizer.bucket_a,
+            np.concatenate([[H], discretizer.bucket_states, discretizer.bucket_actions]),
             k=k,
-            scale=scale
+            scale=scale,
+            nA=len(discretizer.bucket_actions)
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
+
+    def select_random_action(self) -> np.ndarray:
+        a_idx = tuple(np.random.randint(self.discretizer.bucket_actions).tolist())
+        return self.discretizer.get_action_from_index(a_idx)
+
+    def select_greedy_action(self, s: np.ndarray, h: int) -> np.ndarray:
+        s_idx = np.concatenate([[h], self.discretizer.get_state_index(s)])
+        a_idx_flat = self.Q(s_idx).argmax().detach().item()
+        a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_actions)
+        return self.discretizer.get_action_from_index(a_idx)
 
     def select_action(
             self,
@@ -36,32 +48,21 @@ class FHTlr:
             epsilon: float
         ) -> np.ndarray:
         if np.random.rand() < epsilon:
-            a_idx = tuple(np.random.randint(self.discretizer.bucket_a).tolist())
-            a = self.discretizer.get_action_from_index(a_idx)
-            return a
-        s_idx = [h] + self.discretizer.get_state_index(s)
-        a_idx_flat = self.Q(s_idx).argmax().detach().item()
-        a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_a)
-        a = self.discretizer.get_action_from_index(a_idx)
-        return a
+            return self.select_random_action()
+        return self.select_greedy_action(s, h)
 
     def update(self) -> None:
-        h, s, a, sp, r, d = self.buffer.sample(1)
+        h, s, a, sp, r, d = self.buffer.sample()
 
-        s_idx = [h] + self.discretizer.get_state_index(s)
-        sp_idx = [h + 1] + self.discretizer.get_state_index(sp)
+        s_idx = np.concatenate([[h], self.discretizer.get_state_index(s)])
+        sp_idx = np.concatenate([[h + 1], self.discretizer.get_state_index(sp)])
         a_idx = self.discretizer.get_action_index(a)
 
-        self.opt.zero_grad()
-        loss = MSELoss()
-        loss(q_hat, q_target).backward()
-        self.opt.step()
-
         for factor in self.Q.factors:
-            q_target = r
+            q_target = tensor(r, dtype=double)
             if not d:
                 q_target += self.Q(sp_idx).max().detach()
-            q_hat = self.Q(s_idx + a_idx)
+            q_hat = self.Q(np.concatenate([s_idx, a_idx]))
         
             self.opt.zero_grad()
             loss = MSELoss()

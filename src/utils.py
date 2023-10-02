@@ -76,13 +76,13 @@ class ReplayBuffer(object):
             self._storage[self._next_idx] = data
         self._next_idx = (self._next_idx + 1) % self._maxsize
 
-    def sample(self, batch_size):
-        sample = [self._storage[random.randint(0, len(self._storage) - 1)] for _ in range(batch_size)]
+    def sample(self):
+        sample = self._storage[random.randint(0, len(self._storage) - 1)]
         return (
-            [s.timestep for s in sample],
-            torch.stack([s.state for s in sample]),
-            np.stack([s.action for s in sample]),
-            torch.stack([s.next_state for s in sample]),
-            torch.tensor(np.stack([s.reward for s in sample])).double(),
-            np.stack([s.done for s in sample])
+            sample.timestep,
+            sample.state,
+            sample.action,
+            sample.next_state,
+            sample.reward,
+            sample.done
         )
