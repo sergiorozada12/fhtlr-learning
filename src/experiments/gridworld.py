@@ -29,8 +29,8 @@ DISCRETIZER = Discretizer(
 def run_gridworld_simulations():
     q_learner = QLearning(DISCRETIZER, ALPHA_Q, GAMMA)
     fhq_learner = FHQLearning(DISCRETIZER, ALPHA_Q, H)
-    fhtlr_learner = FHTlr(DISCRETIZER, ALPHA_TLR, K, SCALE)
+    fhtlr_learner = FHTlr(DISCRETIZER, ALPHA_TLR, H, K, SCALE)
 
-    _ = run_experiment(0, E, H, EPS, EPS_DECAY, ENV, q_learner)
+    #_ = run_experiment(0, E, H, EPS, EPS_DECAY, ENV, q_learner)
+    #_ = run_experiment(0, E, H, EPS, EPS_DECAY, ENV, fhq_learner)
     _ = run_experiment(0, E, H, EPS, EPS_DECAY, ENV, fhq_learner)
-    _ = run_experiment(0, E, H, EPS, EPS_DECAY, ENV, fhtlr_learner)

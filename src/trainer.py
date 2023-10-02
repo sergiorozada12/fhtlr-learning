@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import torch
-from gym import Env
+from gymnasium import Env
 
 
 torch.set_num_threads(1)

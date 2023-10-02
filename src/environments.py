@@ -1,7 +1,8 @@
 from typing import List, Tuple
 
 import numpy as np
-import gym
+import gymnasium as gym
+import matrix_mdp
 
 
 class GridWorldEnv:
@@ -52,11 +53,19 @@ class GridWorldEnv:
                     R[:, s, a] = 0
         self.env = gym.make('matrix_mdp/MatrixMDP-v0', p_0=P_0, p=P, r=R)
 
+        self.H = H
+        self.h = 0
+
     def reset(self):
         return self.env.reset()
 
     def step(self, a):
-        return self.env.step(a)
+        sp, r, d, _, _ = self.env.step(int(a[0]))
+        self.h += 1
+        if self.h == self.H:
+            d = True
+            self.h = 0
+        return sp, r, d, None, None
 
 
 class WirelessCommunicationsEnv:
@@ -152,7 +161,7 @@ class WirelessCommunicationsEnv:
         if self.t == self.T:
             r += self.batt_weight * np.log(1 + self.batt[self.T]) - self.queue_weight * self.queue[self.T]
             done = True
-        
+
         return self._get_obs(self.t), r, done, None, None
 
     def reset(self):
