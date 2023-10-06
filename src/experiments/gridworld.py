@@ -8,15 +8,15 @@ from src.trainer import run_experiment
 from src.plots import plot_gridworld
 
 
-ALPHA_Q = .9
-ALPHA_TLR = .001
-GAMMA = .99
+ALPHA_Q = 0.9
+ALPHA_TLR = 0.001
+GAMMA = 0.99
 E = 50_000
 H = 5
 EPS = 1.0
-EPS_DECAY = .9999
+EPS_DECAY = 0.9999
 K = 8
-SCALE = .1
+SCALE = 0.1
 
 ENV = GridWorldEnv()
 
@@ -26,8 +26,9 @@ DISCRETIZER = Discretizer(
     bucket_states=[5, 5],
     min_points_actions=[0],
     max_points_actions=[3],
-    bucket_actions=[4]
+    bucket_actions=[4],
 )
+
 
 def run_gridworld_simulations():
     q_learner = QLearning(DISCRETIZER, ALPHA_Q, GAMMA)

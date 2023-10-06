@@ -19,6 +19,7 @@ def run_train_episode(env, agent, eps, eps_decay, H):
         eps *= eps_decay
     return eps
 
+
 def run_test_episode(env, agent, H):
     G = 0
     s, _ = env.reset()
@@ -31,15 +32,10 @@ def run_test_episode(env, agent, H):
             break
     return G
 
+
 def run_experiment(
-        n: int,
-        E: int,
-        H: int,
-        eps: float,
-        eps_decay: float,
-        env: Env,
-        agent
-    ):
+    n: int, E: int, H: int, eps: float, eps_decay: float, env: Env, agent
+):
     random.seed(n)
     np.random.seed(n)
     torch.manual_seed(n)
@@ -50,6 +46,6 @@ def run_experiment(
         G = run_test_episode(env, agent, H)
         Gs.append(G)
 
-        if hasattr(agent, 'scheduler'):
+        if hasattr(agent, "scheduler"):
             agent.scheduler.step()
     return Gs

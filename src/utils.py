@@ -14,7 +14,7 @@ class Discretizer:
         min_points_actions: List[float],
         max_points_actions: List[float],
         bucket_actions: List[int],
-        ) -> None:
+    ) -> None:
         self.min_points_states = np.array(min_points_states)
         self.max_points_states = np.array(max_points_states)
         self.bucket_states = np.array(bucket_states)
@@ -23,7 +23,9 @@ class Discretizer:
         self.min_points_actions = np.array(min_points_actions)
         self.max_points_actions = np.array(max_points_actions)
         self.bucket_actions = np.array(bucket_actions)
-        self.spacing_actions = (self.max_points_actions - self.min_points_actions) / (self.bucket_actions - 1)
+        self.spacing_actions = (self.max_points_actions - self.min_points_actions) / (
+            self.bucket_actions - 1
+        )
 
         self.range_actions = self.max_points_actions - self.min_points_actions
 
@@ -32,20 +34,23 @@ class Discretizer:
         self.dimensions = np.concatenate((self.n_states, self.n_actions))
 
     def get_state_index(self, state: np.ndarray) -> List[int]:
-        state = np.clip(state, a_min=self.min_points_states, a_max=self.max_points_states)
+        state = np.clip(
+            state, a_min=self.min_points_states, a_max=self.max_points_states
+        )
         scaling = (state - self.min_points_states) / self.range_states
         state_idx = np.round(scaling * (self.bucket_states - 1)).astype(int)
         return state_idx.tolist()
 
     def get_action_index(self, action: np.ndarray) -> List[int]:
-        action = np.clip(action, a_min=self.min_points_actions, a_max=self.max_points_actions)
+        action = np.clip(
+            action, a_min=self.min_points_actions, a_max=self.max_points_actions
+        )
         scaling = (action - self.min_points_actions) / self.range_actions
         action_idx = np.round(scaling * (self.bucket_actions - 1)).astype(int)
         return action_idx.tolist()
 
     def get_action_from_index(self, action_idx: np.ndarray) -> np.ndarray:
         return self.min_points_actions + action_idx * self.spacing_actions
-
 
 
 @dataclass
@@ -56,7 +61,8 @@ class Transition:
     next_state: torch.Tensor
     reward: float
     done: bool
-        
+
+
 # From OpenAI baselines
 class ReplayBuffer(object):
     def __init__(self, size: int) -> None:
@@ -84,5 +90,5 @@ class ReplayBuffer(object):
             sample.action,
             sample.next_state,
             sample.reward,
-            sample.done
+            sample.done,
         )

@@ -7,11 +7,11 @@ import matrix_mdp
 
 class GridWorldEnv:
     def __init__(
-            self,
-            nS: int=25,
-            nA: int=4,
-            W: int=5,
-            H: int=5,
+        self,
+        nS: int = 25,
+        nA: int = 4,
+        W: int = 5,
+        H: int = 5,
     ) -> None:
         self.nS = nS
         self.nA = nA
@@ -19,10 +19,10 @@ class GridWorldEnv:
         self.H = H
 
         incs = {
-            0: (0, -1), # UP
-            1: (-1, 0), # LEFT
-            2: (0, +1), # DOWN
-            3: (+1, 0)  # RIGHT
+            0: (0, -1),  # UP
+            1: (-1, 0),  # LEFT
+            2: (0, +1),  # DOWN
+            3: (+1, 0),  # RIGHT
         }
 
         P = np.zeros((nS, nS, nA))
@@ -38,7 +38,7 @@ class GridWorldEnv:
                 x = np.clip(x + dx, 0, W - 1)
                 y = np.clip(y + dy, 0, W - 1)
 
-                sp = y*W + x
+                sp = y * W + x
 
                 # Transition
                 if s != 0 and s != nS - 1:
@@ -51,7 +51,7 @@ class GridWorldEnv:
                     R[sp, s, a] = 100
                 elif s == 0 or s == nS - 1:
                     R[:, s, a] = 0
-        self.env = gym.make('matrix_mdp/MatrixMDP-v0', p_0=P_0, p=P, r=R)
+        self.env = gym.make("matrix_mdp/MatrixMDP-v0", p_0=P_0, p=P, r=R)
 
         self.H = H
         self.h = 0
@@ -92,26 +92,29 @@ class WirelessCommunicationsEnv:
     - Tx power for each of the K channels
     - We can merge both (by setting pkt=0)
     """
+
     def __init__(
         self,
-        T: int=10,                         # Number of time slots
-        K: int=3,                          # Number of channels
-        snr_max: float=10,                 # Max SNR
-        snr_min: float=2,                  # Min SNR
-        snr_autocorr: float=0.7,           # Autocorrelation coefficient of SNR
-        P_occ: np.ndarray=np.array([       # Prob. of transition of occupancy
-            [0.3, 0.5],
-            [0.7, 0.5],
-        ]),
-        occ_initial: List[int]=[1, 1, 1],  # Initial occupancy state 
-        batt_harvest: float=3,             # Battery to harvest following a Bernoulli
-        P_harvest: float=0.5,              # Probability of harvest energy
-        batt_initial: float=5,             # Initial battery
-        batt_max_capacity: float=50,       # Maximum capacity of the battery
-        batt_weight: float=1.0,            # Weight for the reward function
-        queue_initial: float=20,           # Initial size of the queue
-        queue_weight: float=1e-1,          # Weight for the reward function
-        loss_busy: float=0.80,             # Loss in the channel when busy
+        T: int = 10,  # Number of time slots
+        K: int = 3,  # Number of channels
+        snr_max: float = 10,  # Max SNR
+        snr_min: float = 2,  # Min SNR
+        snr_autocorr: float = 0.7,  # Autocorrelation coefficient of SNR
+        P_occ: np.ndarray = np.array(
+            [  # Prob. of transition of occupancy
+                [0.3, 0.5],
+                [0.7, 0.5],
+            ]
+        ),
+        occ_initial: List[int] = [1, 1, 1],  # Initial occupancy state
+        batt_harvest: float = 3,  # Battery to harvest following a Bernoulli
+        P_harvest: float = 0.5,  # Probability of harvest energy
+        batt_initial: float = 5,  # Initial battery
+        batt_max_capacity: float = 50,  # Maximum capacity of the battery
+        batt_weight: float = 1.0,  # Weight for the reward function
+        queue_initial: float = 20,  # Initial size of the queue
+        queue_weight: float = 1e-1,  # Weight for the reward function
+        loss_busy: float = 0.80,  # Loss in the channel when busy
     ) -> None:
         self.T = T
         self.K = K
@@ -138,17 +141,25 @@ class WirelessCommunicationsEnv:
             p = self.batt[self.t] * p / np.sum(p)
 
         self.c[:, self.t] = np.log2(1 + self.g[:, self.t] * p)
-        self.c[:, self.t] *= (1 - self.loss_busy)*self.occ[:, self.t] + (1 - self.occ[:, self.t])
+        self.c[:, self.t] *= (1 - self.loss_busy) * self.occ[:, self.t] + (
+            1 - self.occ[:, self.t]
+        )
 
         self.t += 1
 
-        self.h[:, self.t] = np.sqrt(0.5 * self.snr) * (np.random.randn(self.K) + 1j * np.random.randn(self.K))
+        self.h[:, self.t] = np.sqrt(0.5 * self.snr) * (
+            np.random.randn(self.K) + 1j * np.random.randn(self.K)
+        )
         self.h[:, self.t] *= np.sqrt(1 - self.snr_autocorr)
         self.h[:, self.t] += np.sqrt(self.snr_autocorr) * self.h[:, self.t - 1]
-        self.g[:, self.t] = np.abs(self.h[:, self.t])**2 
+        self.g[:, self.t] = np.abs(self.h[:, self.t]) ** 2
 
-        self.occ[:, self.t] += (np.random.rand(self.K) > self.P_occ[1, 1]) * self.occ[:, self.t - 1]
-        self.occ[:, self.t] += (np.random.rand(self.K) > self.P_occ[0, 0]) * (1 - self.occ[:, self.t - 1])
+        self.occ[:, self.t] += (np.random.rand(self.K) > self.P_occ[1, 1]) * self.occ[
+            :, self.t - 1
+        ]
+        self.occ[:, self.t] += (np.random.rand(self.K) > self.P_occ[0, 0]) * (
+            1 - self.occ[:, self.t - 1]
+        )
 
         energy_harv = self.batt_harvest * (self.P_harvest > np.random.rand())
         self.batt[self.t] = self.batt[self.t - 1] - np.sum(p) + energy_harv
@@ -163,7 +174,10 @@ class WirelessCommunicationsEnv:
         r = 0
         done = False
         if self.t == self.T:
-            r += self.batt_weight * np.log(1 + self.batt[self.T]) - self.queue_weight * self.queue[self.T]
+            r += (
+                self.batt_weight * np.log(1 + self.batt[self.T])
+                - self.queue_weight * self.queue[self.T]
+            )
             done = True
 
         return self._get_obs(self.t), r, done, None, None
@@ -177,8 +191,10 @@ class WirelessCommunicationsEnv:
         self.queue = np.zeros(self.T + 1)
         self.batt = np.zeros(self.T + 1)
 
-        self.h[:, 0] = np.sqrt(0.5 * self.snr) * (np.random.randn(self.K) + 1j * np.random.randn(self.K))
-        self.g[:, 0] = np.abs(self.h[:, 0])**2
+        self.h[:, 0] = np.sqrt(0.5 * self.snr) * (
+            np.random.randn(self.K) + 1j * np.random.randn(self.K)
+        )
+        self.g[:, 0] = np.abs(self.h[:, 0]) ** 2
         self.occ[:, 0] = self.occ_initial
         self.queue[0] = self.queue_initial
         self.batt[0] = self.batt_initial
@@ -187,12 +203,5 @@ class WirelessCommunicationsEnv:
 
     def _get_obs(self, t):
         return np.concatenate(
-            [
-                self.g[:, t],
-                self.occ[:, t],
-                [
-                    self.queue[t],
-                    self.batt[t]
-                ]
-            ]
+            [self.g[:, t], self.occ[:, t], [self.queue[t], self.batt[t]]]
         )

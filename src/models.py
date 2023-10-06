@@ -4,11 +4,9 @@ import torch
 
 
 class ValueNetwork(torch.nn.Module):
-    def __init__(self,
-            num_inputs: int,
-            num_hiddens: List[int],
-            num_outputs: int
-        ) -> None:
+    def __init__(
+        self, num_inputs: int, num_hiddens: List[int], num_outputs: int
+    ) -> None:
         super(ValueNetwork, self).__init__()
         self.layers = torch.nn.ModuleList()
         for h in num_hiddens:
@@ -28,19 +26,20 @@ class ValueNetwork(torch.nn.Module):
 
 
 class FHValueNetwork(torch.nn.Module):
-    def __init__(self,
-            num_inputs: int,
-            num_hiddens: List[int],
-            num_outputs: int,
-            H: int,
-        ) -> None:
+    def __init__(
+        self,
+        num_inputs: int,
+        num_hiddens: List[int],
+        num_outputs: int,
+        H: int,
+    ) -> None:
         super(FHValueNetwork, self).__init__()
         self.layers = torch.nn.ModuleList()
         for h in num_hiddens:
             self.layers.append(torch.nn.Linear(num_inputs, h))
             self.layers.append(torch.nn.Tanh())
             num_inputs = h
-        
+
         time_layers = []
         for h in range(H):
             action_layer = torch.nn.Linear(num_inputs, num_outputs)
@@ -58,12 +57,8 @@ class FHValueNetwork(torch.nn.Module):
 
 class PARAFAC(torch.nn.Module):
     def __init__(
-            self,
-            dims: np.ndarray,
-            k: int,
-            scale: float=1.0,
-            nA: int=1
-        ) -> None:
+        self, dims: np.ndarray, k: int, scale: float = 1.0, nA: int = 1
+    ) -> None:
         super().__init__()
 
         self.nA = nA
@@ -72,7 +67,7 @@ class PARAFAC(torch.nn.Module):
 
         factors = []
         for dim in dims:
-            factor = scale*torch.randn(dim, k, dtype=torch.double, requires_grad=True)
+            factor = scale * torch.randn(dim, k, dtype=torch.double, requires_grad=True)
             factors.append(torch.nn.Parameter(factor))
         self.factors = torch.nn.ParameterList(factors)
 
@@ -84,7 +79,9 @@ class PARAFAC(torch.nn.Module):
             prod *= factor[idx, :]
         if len(indices) < len(self.factors):
             res = []
-            for cols in zip(*[self.factors[- (a + 1)].t() for a in reversed(range(self.nA))]):
+            for cols in zip(
+                *[self.factors[-(a + 1)].t() for a in reversed(range(self.nA))]
+            ):
                 kr = cols[0]
                 for j in range(1, self.nA):
                     kr = torch.kron(kr, cols[j])

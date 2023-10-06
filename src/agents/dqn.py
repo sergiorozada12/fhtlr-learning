@@ -10,20 +10,14 @@ from src.utils import ReplayBuffer, Discretizer
 
 class Dqn:
     def __init__(
-            self,
-            discretizer: Discretizer,
-            alpha: float,
-            gamma: float,
-            buffer_size: int
-        ) -> None:
+        self, discretizer: Discretizer, alpha: float, gamma: float, buffer_size: int
+    ) -> None:
         self.gamma = gamma
 
         self.buffer = ReplayBuffer(buffer_size)
         self.discretizer = discretizer
         self.Q = ValueNetwork(
-            len(discretizer.bucket_states),
-            [32],
-            np.prod(discretizer.bucket_actions)
+            len(discretizer.bucket_states), [32], np.prod(discretizer.bucket_actions)
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
 
@@ -58,22 +52,15 @@ class Dqn:
 
 class DFHqn:
     def __init__(
-            self,
-            discretizer: Discretizer,
-            alpha: float,
-            H: int,
-            buffer_size: int
-        ) -> None:
+        self, discretizer: Discretizer, alpha: float, H: int, buffer_size: int
+    ) -> None:
         self.alpha = alpha
         self.H = H
 
         self.buffer = ReplayBuffer(buffer_size)
         self.discretizer = discretizer
         self.Q = FHValueNetwork(
-            len(discretizer.bucket_states),
-            [32],
-            np.prod(discretizer.bucket_actions),
-            H
+            len(discretizer.bucket_states), [32], np.prod(discretizer.bucket_actions), H
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
 
@@ -86,12 +73,7 @@ class DFHqn:
         a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_actions)
         return self.discretizer.get_action_from_index(a_idx)
 
-    def select_action(
-            self,
-            s: np.ndarray,
-            h: int,
-            epsilon: float
-        ) -> np.ndarray:
+    def select_action(self, s: np.ndarray, h: int, epsilon: float) -> np.ndarray:
         if np.random.rand() < epsilon:
             return self.select_random_action()
         return self.select_greedy_action(s, h)

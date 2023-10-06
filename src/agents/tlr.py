@@ -12,33 +12,33 @@ from src.utils import ReplayBuffer, Discretizer
 
 class FHTlr:
     def __init__(
-            self,
-            discretizer: Discretizer,
-            alpha: float,
-            H: int,
-            k: int,
-            scale: float,
-            lr_decayment: float=None,
-            lr_decayment_step: int=None,
-        ) -> None:
+        self,
+        discretizer: Discretizer,
+        alpha: float,
+        H: int,
+        k: int,
+        scale: float,
+        lr_decayment: float = None,
+        lr_decayment_step: int = None,
+    ) -> None:
         self.alpha = alpha
         self.H = H
 
         self.buffer = ReplayBuffer(1)
         self.discretizer = discretizer
         self.Q = PARAFAC(
-            np.concatenate([[H], discretizer.bucket_states, discretizer.bucket_actions]),
+            np.concatenate(
+                [[H], discretizer.bucket_states, discretizer.bucket_actions]
+            ),
             k=k,
             scale=scale,
-            nA=len(discretizer.bucket_actions)
+            nA=len(discretizer.bucket_actions),
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
 
         if lr_decayment:
             self.scheduler = StepLR(
-                self.opt,
-                step_size=lr_decayment_step,
-                gamma=lr_decayment
+                self.opt, step_size=lr_decayment_step, gamma=lr_decayment
             )
 
     def select_random_action(self) -> np.ndarray:
@@ -51,12 +51,7 @@ class FHTlr:
         a_idx = np.unravel_index(a_idx_flat, self.discretizer.bucket_actions)
         return self.discretizer.get_action_from_index(a_idx)
 
-    def select_action(
-            self,
-            s: np.ndarray,
-            h: int,
-            epsilon: float
-        ) -> np.ndarray:
+    def select_action(self, s: np.ndarray, h: int, epsilon: float) -> np.ndarray:
         if np.random.rand() < epsilon:
             return self.select_random_action()
         return self.select_greedy_action(s, h)
@@ -73,7 +68,7 @@ class FHTlr:
             if not d:
                 q_target += self.Q(sp_idx).max().detach()
             q_hat = self.Q(np.concatenate([s_idx, a_idx]))
-        
+
             self.opt.zero_grad()
             loss = MSELoss()
             loss(q_hat, q_target).backward()
