@@ -62,10 +62,10 @@ def plot_gridworld(W, mat_q_stationary, mat_q, mat_tlr):
 
 
 def plot_wireless():
-    dqn = np.load("results/dqn2.npy")
-    dfhqn = np.load("results/dfhqn2.npy")
-    fhtlr = np.load("results/fhtlr2.npy")
-    ql = np.load("results/ql2.npy")
+    dqn = np.load("results/dqn.npy")
+    dfhqn = np.load("results/dfhqn.npy")
+    fhtlr = np.load("results/fhtlr.npy")
+    ql = np.load("results/ql.npy")
 
     mu_dqn = np.mean(dqn, axis=0)
     mu_dfhqn = np.mean(dfhqn, axis=0)

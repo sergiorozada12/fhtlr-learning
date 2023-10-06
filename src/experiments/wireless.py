@@ -78,9 +78,9 @@ def run_wireless_simulations():
         DISCRETIZER, ALPHA_TLR, H, K, SCALE, ALPHA_DECAY, ALPHA_TLR_DECAY_STEP
     )
 
-    # run_paralell('ql2', q_learner)
-    # run_paralell('dqn2', dqn_learner)
-    # run_paralell('dfhqn2', dfhqn_learner)
+    run_paralell('ql2', q_learner)
+    run_paralell('dqn2', dqn_learner)
+    run_paralell('dfhqn2', dfhqn_learner)
     run_paralell("fhtlr2", fhtlr_learner)
 
     plot_wireless()
