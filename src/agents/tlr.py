@@ -4,6 +4,7 @@ from torch import tensor, double
 from torch import no_grad
 from torch.nn import MSELoss
 from torch.optim import Adam
+from torch.optim.lr_scheduler import StepLR
 
 from src.models import PARAFAC
 from src.utils import ReplayBuffer, Discretizer
@@ -16,7 +17,9 @@ class FHTlr:
             alpha: float,
             H: int,
             k: int,
-            scale: float
+            scale: float,
+            lr_decayment: float=None,
+            lr_decayment_step: int=None,
         ) -> None:
         self.alpha = alpha
         self.H = H
@@ -30,6 +33,13 @@ class FHTlr:
             nA=len(discretizer.bucket_actions)
         ).double()
         self.opt = Adam(self.Q.parameters(), lr=alpha)
+
+        if lr_decayment:
+            self.scheduler = StepLR(
+                self.opt,
+                step_size=lr_decayment_step,
+                gamma=lr_decayment
+            )
 
     def select_random_action(self) -> np.ndarray:
         a_idx = tuple(np.random.randint(self.discretizer.bucket_actions).tolist())

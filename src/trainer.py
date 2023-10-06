@@ -4,14 +4,11 @@ import torch
 from gymnasium import Env
 
 
-torch.set_num_threads(1)
-
 def run_train_episode(env, agent, eps, eps_decay, H):
     s, _ = env.reset()
     for h in range(H):
         a = agent.select_action(s, h, eps)
         sp, r, d, _, _ = env.step(a)
-
         agent.buffer.append(h, s, a, sp, r, d)
         agent.update()
 
@@ -52,4 +49,7 @@ def run_experiment(
         eps = run_train_episode(env, agent, eps, eps_decay, H)
         G = run_test_episode(env, agent, H)
         Gs.append(G)
+
+        if hasattr(agent, 'scheduler'):
+            agent.scheduler.step()
     return Gs

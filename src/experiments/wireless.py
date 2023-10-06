@@ -1,4 +1,6 @@
 import numpy as np
+from multiprocessing import Pool
+from functools import partial
 
 from src.environments import WirelessCommunicationsEnv
 from src.agents.ql import QLearning, FHQLearning
@@ -6,19 +8,23 @@ from src.agents.dqn import DFHqn, Dqn
 from src.agents.tlr import FHTlr
 from src.utils import Discretizer
 from src.trainer import run_experiment
+from src.plots import plot_wireless
 
 
 ALPHA_Q = 1.0
 ALPHA_DQN = .001
 ALPHA_TLR = .001
+ALPHA_TLR_DECAY_STEP = 5_000
+ALPHA_DECAY = .1
 BUFFER_SIZE = 1_000
 GAMMA = .99
 E = 100_000
 H = 5
 EPS = 1.0
 EPS_DECAY = .9999
-K = 8
-SCALE = .1
+K = 50
+SCALE = .5
+N_EXPS = 10
 
 ENV = WirelessCommunicationsEnv(
     T=5,
@@ -45,16 +51,39 @@ ENV = WirelessCommunicationsEnv(
 DISCRETIZER = Discretizer(
     min_points_states=[0, 0, 0, 0, 0, 0],
     max_points_states=[10, 10, 1, 1, 5, 5],
-    bucket_states=[10, 10, 2, 2, 20, 20],
+    bucket_states=[10, 10, 2, 2, 10, 10],
     min_points_actions=[0, 0],
     max_points_actions=[2, 2],
     bucket_actions=[10, 10],
 )
+
+def run_paralell(
+        name: str,
+        agent):
+    partial_run = partial(
+        run_experiment,
+        E=E,
+        H=H,
+        eps=EPS,
+        eps_decay=EPS_DECAY,
+        env=ENV,
+        agent=agent
+    )
+    with Pool() as pool:
+        results = pool.map(partial_run, range(N_EXPS))
+    np.save(f'results/{name}.npy', results)
+
 
 def run_wireless_simulations():
     q_learner = QLearning(DISCRETIZER, ALPHA_Q, GAMMA)
     fhq_learner = FHQLearning(DISCRETIZER, ALPHA_Q, H)
     dqn_learner = Dqn(DISCRETIZER, ALPHA_DQN, GAMMA, BUFFER_SIZE)
     dfhqn_learner = DFHqn(DISCRETIZER, ALPHA_DQN, H, BUFFER_SIZE)
-    fhtlr_learner = FHTlr(DISCRETIZER, ALPHA_TLR, H, K, SCALE)
-    G = run_experiment(0, E, H, EPS, EPS_DECAY, ENV, fhq_learner)
+    fhtlr_learner = FHTlr(DISCRETIZER, ALPHA_TLR, H, K, SCALE, ALPHA_DECAY, ALPHA_TLR_DECAY_STEP)
+
+    #run_paralell('ql2', q_learner)
+    #run_paralell('dqn2', dqn_learner)
+    #run_paralell('dfhqn2', dfhqn_learner)
+    run_paralell('fhtlr2', fhtlr_learner)
+
+    plot_wireless()

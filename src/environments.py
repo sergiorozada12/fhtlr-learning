@@ -57,15 +57,19 @@ class GridWorldEnv:
         self.h = 0
 
     def reset(self):
-        return self.env.reset()
+        s, _ = self.env.reset()
+        return np.array([s % self.W, s // self.W]), None
 
     def step(self, a):
         sp, r, d, _, _ = self.env.step(int(a[0]))
         self.h += 1
+
         if self.h == self.H:
             d = True
+
+        if d:
             self.h = 0
-        return sp, r, d, None, None
+        return np.array([sp % self.W, sp // self.W]), r, d, None, None
 
 
 class WirelessCommunicationsEnv:
