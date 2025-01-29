@@ -4,7 +4,7 @@ by
 Sergio Rozada,
 and Antonio G. Marques
 
-This code belongs to a paper that has been submitted for publication in *ICASSP 2024*.
+This code belongs to a paper that has been published in *ICASSP 2024*.
 
 > The associated paper presents low-rank tensor models for finite-horizon MDP value-based methods. They are easy to tune, and parametrize. Their performance is comparable to neural network methods in terms of speed of convergence, and returns.
 
